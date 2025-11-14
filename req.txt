@@ -1,0 +1,42 @@
+# Core
+pandas==2.2.2
+numpy==1.26.4
+python-dotenv==1.0.1
+
+# Image processing
+Pillow==10.3.0
+opencv-python==4.10.0.84
+
+# Deep Learning (CPU or GPU)
+torch==2.2.2
+torchvision==0.17.2
+torchaudio==2.2.2
+
+# NLP + Multimodal models
+transformers==4.41.2
+datasets==2.19.1
+sentencepiece==0.2.0
+tokenizers==0.19.1
+
+# For JSONL, preprocessing
+tqdm==4.66.4
+
+# Evaluation metrics
+scikit-learn==1.4.2
+rouge-score==0.1.2
+nltk==3.8.1
+
+# Visualization
+matplotlib==3.8.4
+seaborn==0.13.2
+
+# FastAPI / Streamlit (optional later for demo)
+fastapi==0.111.0
+uvicorn==0.30.1
+streamlit==1.35.0
+
+# For saving datasets
+pyarrow==16.1.0
+
+# Image augmentations (for training)
+albumentations==1.4.4
