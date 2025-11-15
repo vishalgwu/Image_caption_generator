@@ -2,7 +2,7 @@ import json
 from pathlib import Path
 
 # Path to your vocab.json file (adjust path if needed)
-VOCAB_PATH = Path("../metadata/vocab.json")
+VOCAB_PATH = Path("metadata/vocab.json")
 
 def load_vocab(vocab_path: str | Path = VOCAB_PATH):
     vocab_path = Path(vocab_path)
