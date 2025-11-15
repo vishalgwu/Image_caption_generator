@@ -1,29 +1,29 @@
 import os
 import pandas as pd
 
-# Path to images/small directory
-BASE_DIR = os.path.dirname(__file__)
-IMAGE_DIR = os.path.abspath(os.path.join(BASE_DIR, "..", "images", "small"))
+def load_images():
+    images_folder = os.path.join("..", "images")
 
-print("Looking in:", IMAGE_DIR)
+    print("Looking in:", images_folder)
 
-image_rows = []
+    all_files = os.listdir(images_folder)
+    images = [f for f in all_files if f.lower().endswith((".jpg", ".jpeg", ".png"))]
 
-# Walk through all subfolders inside images/small/
-for root, dirs, files in os.walk(IMAGE_DIR):
-    for fname in files:
-        if fname.lower().endswith((".jpg", ".jpeg", ".png")):
-            fpath = os.path.join(root, fname)
+    print("Images found:", len(images))
 
-            # filename without extension → product_id
-            product_id_guess = os.path.splitext(fname)[0]
+    data = []
 
-            image_rows.append({
-                "image_path": fpath,
-                "product_id_guess": product_id_guess
-            })
+    for img in images:
+        img_id = os.path.splitext(img)[0]   # filename without extension
+        img_path = os.path.join(images_folder, img)
 
-df_images = pd.DataFrame(image_rows)
+        data.append([img_id, img_path])
 
-print("Images found:", len(df_images))
-print(df_images.head())
+    df_images = pd.DataFrame(data, columns=["image_id", "image_path"])
+
+    print(df_images.head())
+    return df_images
+
+
+if __name__ == "__main__":
+    load_images()

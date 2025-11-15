@@ -1,44 +1,32 @@
-import os
-import json
 import pandas as pd
+import os
 
-metadata_dir = os.path.join(os.path.dirname(__file__), "..", "listings", "metadata")
-metadata_dir = os.path.abspath(metadata_dir)
+def load_metadata():
+    metadata_path = os.path.join("..", "metadata", "styles.csv")
 
-print("Looking in:", metadata_dir)
+    print("Loading metadata from:", metadata_path)
 
-all_rows = []
+    # FIX: use python engine + skip bad lines
+    df = pd.read_csv(
+        metadata_path,
+        engine="python",
+        on_bad_lines="skip",
+        quotechar='"'
+    )
 
-for fname in os.listdir(metadata_dir):
-    if fname.startswith("listings_"):
-        fpath = os.path.join(metadata_dir, fname)
+    print("Loaded metadata:", df.shape)
 
-        try:
-            with open(fpath, "r", encoding="utf-8") as f:
-                data = json.load(f)
+    # convert id to string
+    df["id"] = df["id"].astype(str)
 
-            if isinstance(data, list):
-                all_rows.extend(data)
-            elif isinstance(data, dict):
-                if "listings" in data and isinstance(data["listings"], list):
-                    all_rows.extend(data["listings"])
-                else:
-                    all_rows.extend(list(data.values()))
+    # drop rows with missing id
+    df = df.dropna(subset=["id"])
 
-        except json.JSONDecodeError:
-            with open(fpath, "r", encoding="utf-8") as f:
-                for line in f:
-                    line = line.strip()
-                    if not line:
-                        continue
-                    try:
-                        obj = json.loads(line)
-                        all_rows.append(obj)
-                    except json.JSONDecodeError:
-                        pass
+    print("Cleaned metadata:", df.shape)
+    print(df.head())
 
-df_metadata = pd.DataFrame(all_rows)
+    return df
 
-print("Metadata shape:", df_metadata.shape)
-print("First few columns:", df_metadata.columns.tolist()[:20])
-print(df_metadata.head(3))
+
+if __name__ == "__main__":
+    load_metadata()
