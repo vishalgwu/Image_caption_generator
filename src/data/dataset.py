@@ -7,7 +7,8 @@ import torch
 from torch.utils.data import Dataset
 from torchvision import transforms
 
-from src.data.vocab import PAD_IDX, SOS_IDX, EOS_IDX, UNK_IDX
+from src.data.vocab import FashionVocab
+
 
 def get_image_transform():
     return transforms.Compose([
@@ -18,6 +19,7 @@ def get_image_transform():
             std=[0.229, 0.224, 0.225],
         ),
     ])
+
 
 def simple_tokenize(text: str):
     return text.lower().strip().split()
@@ -38,13 +40,15 @@ class FashionDataset(Dataset):
         self.caption_col = caption_column
         self.transform = get_image_transform()
 
-        # Use FashionVocab object
+        # Vocab reference
         self.vocab = vocab
         self.word2idx = vocab.word2idx
-        self.pad_idx = PAD_IDX
-        self.bos_idx = SOS_IDX
-        self.eos_idx = EOS_IDX
-        self.unk_idx = UNK_IDX
+
+        # derive token IDs from vocab
+        self.pad_idx = vocab.word2idx["<pad>"]
+        self.bos_idx = vocab.word2idx["<sos>"]
+        self.eos_idx = vocab.word2idx["<eos>"]
+        self.unk_idx = vocab.word2idx["<unk>"]
 
     def __len__(self):
         return len(self.df)

@@ -1,5 +1,5 @@
 # src/data/vocab.py
-
+import torch
 import pickle
 from collections import Counter
 from typing import List, Dict
@@ -9,12 +9,6 @@ PAD_TOKEN = "<pad>"
 SOS_TOKEN = "<sos>"
 EOS_TOKEN = "<eos>"
 UNK_TOKEN = "<unk>"
-
-# Make these available for training loop
-PAD_IDX = 0
-SOS_IDX = 1
-EOS_IDX = 2
-UNK_IDX = 3
 
 
 class FashionVocab:
@@ -27,8 +21,15 @@ class FashionVocab:
         self._add_special_tokens()
 
     def _add_special_tokens(self):
+        # Order matters
         for token in [PAD_TOKEN, SOS_TOKEN, EOS_TOKEN, UNK_TOKEN]:
             self._add_word_internal(token)
+
+        # Store special indices
+        self.pad_idx = self.word2idx[PAD_TOKEN]
+        self.sos_idx = self.word2idx[SOS_TOKEN]
+        self.eos_idx = self.word2idx[EOS_TOKEN]
+        self.unk_idx = self.word2idx[UNK_TOKEN]
 
     def _add_word_internal(self, word: str):
         if word not in self.word2idx:
@@ -48,7 +49,7 @@ class FashionVocab:
         return len(self.word2idx)
 
     def word_to_index(self, word: str) -> int:
-        return self.word2idx.get(word, UNK_IDX)
+        return self.word2idx.get(word, self.unk_idx)
 
     def index_to_word(self, idx: int) -> str:
         return self.idx2word.get(idx, UNK_TOKEN)
@@ -56,7 +57,7 @@ class FashionVocab:
     def numericalize(self, tokens: List[str], add_special_tokens=True):
         ids = [self.word_to_index(t) for t in tokens]
         if add_special_tokens:
-            ids = [SOS_IDX] + ids + [EOS_IDX]
+            ids = [self.sos_idx] + ids + [self.eos_idx]
         return ids
 
     # ---------- Saving & Loading ----------
@@ -68,3 +69,22 @@ class FashionVocab:
     def load(path: str) -> "FashionVocab":
         with open(path, "rb") as f:
             return pickle.load(f)
+
+    # ---------- Decode & Encode ----------
+    def decode(self, token_ids):
+        if torch.is_tensor(token_ids):
+            token_ids = token_ids.tolist()
+
+        words = []
+        for idx in token_ids:
+            word = self.idx2word.get(idx, UNK_TOKEN)
+            if word in [PAD_TOKEN, SOS_TOKEN, EOS_TOKEN]:
+                continue
+            words.append(word)
+
+        return " ".join(words)
+
+    def encode(self, text: str):
+        tokens = text.lower().strip().split()
+        ids = [self.sos_idx] + [self.word_to_index(t) for t in tokens] + [self.eos_idx]
+        return ids
