@@ -2,7 +2,7 @@
 
 import os
 import pandas as pd
-from captions import build_caption
+from src.data.captions import build_caption
 
 # Adjust if your paths differ
 BASE_DIR = os.path.dirname(os.path.dirname(__file__))

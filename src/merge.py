@@ -1,5 +1,5 @@
 import pandas as pd
-from metadata import load_metadata
+from src.metadata import load_metadata
 from image_ing import load_images
 import os
 

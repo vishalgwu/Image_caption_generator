@@ -6,12 +6,15 @@ from tqdm import tqdm
 import nltk
 import sys, os
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..")))
+EARLY_STOPPING_PATIENCE = 2
+no_improve_epochs = 0
 
 # IMPORTANT: make sure NLTK BLEU is installed
 try:
     nltk.data.find('tokenizers/punkt')
 except LookupError:
     nltk.download('punkt')
+from src.data.vocab import PAD_IDX, FashionVocab
 
 # Project imports
 from src.models.caption_model import CaptionModel
@@ -26,10 +29,10 @@ from src.data.collate import collate_fn
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 BATCH_SIZE = 32
 LR = 3e-4
-NUM_EPOCHS = 15
+NUM_EPOCHS = 5
 MAX_LEN = 30
 
-DATA_DIR = r"..\metadata"     # adjust if needed
+DATA_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "metadata"))
 TRAIN_PATH = os.path.join(DATA_DIR, "train.parquet")
 VAL_PATH = os.path.join(DATA_DIR, "val.parquet")
 VOCAB_PATH = os.path.join(DATA_DIR, "vocab.pkl")
@@ -53,15 +56,14 @@ print("Loading datasets...")
 
 train_ds = FashionDataset(
     parquet_path=TRAIN_PATH,
-    vocab=vocab,
-    transform=True
+    vocab=vocab
 )
 
 val_ds = FashionDataset(
     parquet_path=VAL_PATH,
-    vocab=vocab,
-    transform=True
+    vocab=vocab
 )
+
 
 train_loader = DataLoader(
     train_ds,
@@ -82,7 +84,8 @@ val_loader = DataLoader(
 # INITIALIZE MODEL
 # -----------------------------
 print("Initializing model...")
-model = CaptionModel(d_model=512, vocab_size=vocab_size).to(DEVICE)
+model = CaptionModel(vocab=vocab, d_model=512).to(DEVICE)
+
 
 criterion = nn.CrossEntropyLoss(ignore_index=PAD_IDX)
 optimizer = torch.optim.Adam(model.parameters(), lr=LR)
@@ -177,6 +180,8 @@ def compute_bleu():
 best_loss = float("inf")
 
 print("Starting training...")
+best_loss = float("inf")
+no_improve_epochs = 0
 
 for epoch in range(1, NUM_EPOCHS + 1):
 
@@ -194,11 +199,20 @@ for epoch in range(1, NUM_EPOCHS + 1):
     print(f"Val Loss:   {val_loss:.4f}")
     print(f"BLEU Score: {bleu:.4f}")
 
-    # Save best model
+    # Model improvement check
     if val_loss < best_loss:
         best_loss = val_loss
         torch.save(model.state_dict(), BEST_MODEL_PATH)
         print(f"✔ Saved new best model → {BEST_MODEL_PATH}")
+        no_improve_epochs = 0    # reset
+    else:
+        no_improve_epochs += 1
+        print(f"⚠ No improvement for {no_improve_epochs} epoch(s).")
+
+    # EARLY STOPPING
+    if no_improve_epochs >= EARLY_STOPPING_PATIENCE:
+        print(" Early stopping triggered.")
+        break
 
 print("\nTraining complete.")
 print(f"Best validation loss: {best_loss:.4f}")
