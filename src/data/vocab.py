@@ -3,12 +3,18 @@ import torch
 import pickle
 from collections import Counter
 from typing import List, Dict
+import os
 
-# Special tokens
 PAD_TOKEN = "<pad>"
 SOS_TOKEN = "<sos>"
 EOS_TOKEN = "<eos>"
 UNK_TOKEN = "<unk>"
+
+# Optional: keep index constants (not strictly required, but ok)
+PAD_IDX = 0
+SOS_IDX = 1
+EOS_IDX = 2
+UNK_IDX = 3
 
 
 class FashionVocab:
@@ -18,18 +24,18 @@ class FashionVocab:
         self.idx2word: Dict[int, str] = {}
         self.word_freq = Counter()
 
+        # add special tokens
         self._add_special_tokens()
 
-    def _add_special_tokens(self):
-        # Order matters
-        for token in [PAD_TOKEN, SOS_TOKEN, EOS_TOKEN, UNK_TOKEN]:
-            self._add_word_internal(token)
-
-        # Store special indices
+        # set special indices from mapping (safe)
         self.pad_idx = self.word2idx[PAD_TOKEN]
         self.sos_idx = self.word2idx[SOS_TOKEN]
         self.eos_idx = self.word2idx[EOS_TOKEN]
         self.unk_idx = self.word2idx[UNK_TOKEN]
+
+    def _add_special_tokens(self):
+        for token in [PAD_TOKEN, SOS_TOKEN, EOS_TOKEN, UNK_TOKEN]:
+            self._add_word_internal(token)
 
     def _add_word_internal(self, word: str):
         if word not in self.word2idx:
@@ -48,10 +54,10 @@ class FashionVocab:
     def __len__(self):
         return len(self.word2idx)
 
-    def word_to_index(self, word: str) -> int:
+    def word_to_index(self, word: str):
         return self.word2idx.get(word, self.unk_idx)
 
-    def index_to_word(self, idx: int) -> str:
+    def index_to_word(self, idx: int):
         return self.idx2word.get(idx, UNK_TOKEN)
 
     def numericalize(self, tokens: List[str], add_special_tokens=True):
@@ -60,17 +66,6 @@ class FashionVocab:
             ids = [self.sos_idx] + ids + [self.eos_idx]
         return ids
 
-    # ---------- Saving & Loading ----------
-    def save(self, path: str):
-        with open(path, "wb") as f:
-            pickle.dump(self, f)
-
-    @staticmethod
-    def load(path: str) -> "FashionVocab":
-        with open(path, "rb") as f:
-            return pickle.load(f)
-
-    # ---------- Decode & Encode ----------
     def decode(self, token_ids):
         if torch.is_tensor(token_ids):
             token_ids = token_ids.tolist()
@@ -88,3 +83,25 @@ class FashionVocab:
         tokens = text.lower().strip().split()
         ids = [self.sos_idx] + [self.word_to_index(t) for t in tokens] + [self.eos_idx]
         return ids
+
+    # ---------- save / load ----------
+    def save(self, path: str):
+        with open(path, "wb") as f:
+            pickle.dump(self, f)
+
+    @staticmethod
+    def load(path: str) -> "FashionVocab":
+        with open(path, "rb") as f:
+            vocab = pickle.load(f)
+
+        # 🔥 Backfill attributes if loading an old pickle 🔥
+        if not hasattr(vocab, "pad_idx"):
+            vocab.pad_idx = vocab.word2idx.get(PAD_TOKEN, 0)
+        if not hasattr(vocab, "sos_idx"):
+            vocab.sos_idx = vocab.word2idx.get(SOS_TOKEN, 1)
+        if not hasattr(vocab, "eos_idx"):
+            vocab.eos_idx = vocab.word2idx.get(EOS_TOKEN, 2)
+        if not hasattr(vocab, "unk_idx"):
+            vocab.unk_idx = vocab.word2idx.get(UNK_TOKEN, 3)
+
+        return vocab

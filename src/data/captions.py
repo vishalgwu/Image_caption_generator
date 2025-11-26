@@ -1,94 +1,90 @@
-# src/captions.py
+import torch
+import torch.nn as nn
 
-import math
+from src.models.encoder_resnet50 import ResNet50Encoder
+from src.models.decoder_transformer import TransformerDecoderModule
 
-def _season_phrase(season: str) -> str:
+
+class CaptionModel(nn.Module):
     """
-    Map raw season text to a generic marketing phrase.
-    We never mention the year, only general seasonal wording.
+    Baseline image captioning model:
+    - ResNet50 encoder (frozen)
+    - Linear projection to d_model
+    - Transformer decoder
     """
-    if not isinstance(season, str):
-        return "perfect for everyday wear"
 
-    season = season.strip().lower()
-    if season in ("fall", "autumn"):
-        return "perfect for cooler months"
-    if season in ("winter",):
-        return "ideal for cold weather and layering"
-    if season in ("spring",):
-        return "great for mild spring days"
-    if season in ("summer",):
-        return "perfect for warm, sunny days"
+    def __init__(self, vocab, d_model=512, train_cnn=False):
+        super().__init__()
 
-    return "perfect for everyday wear"
+        self.vocab = vocab
+        self.vocab_size = len(vocab)
 
+        self.pad_idx = vocab.word2idx["<pad>"]
+        self.bos_idx = vocab.word2idx["<sos>"]
+        self.eos_idx = vocab.word2idx["<eos>"]
 
-def _gender_phrase(gender: str) -> str:
-    """
-    Turn raw gender into marketing-friendly phrase.
-    """
-    if not isinstance(gender, str):
-        return "everyone"
+        # 1) Encoder: ResNet50
+        self.encoder = ResNet50Encoder(train_cnn=train_cnn)
 
-    g = gender.strip().lower()
-    if g == "men":
-        return "men"
-    if g == "women":
-        return "women"
-    if g == "boys":
-        return "boys"
-    if g == "girls":
-        return "girls"
+        # 2) Project 2048 -> d_model
+        self.img_proj = nn.Linear(2048, d_model)
 
-    return "everyone"
+        # 3) Transformer decoder
+        self.decoder = TransformerDecoderModule(
+            vocab_size=self.vocab_size,
+            d_model=d_model,
+            num_heads=8,
+            num_layers=4,
+            dim_feedforward=2048,
+            dropout=0.1,
+            pad_idx=self.pad_idx
+        )
 
+    def forward(self, images, captions_inp):
+        """
+        images: [B, 3, 224, 224]
+        captions_inp: [B, T] (input tokens, starting with <sos>)
+        """
+        img_feats = self.encoder(images)              # [B, 2048]
+        img_emb = self.img_proj(img_feats)           # [B, d_model]
+        memory = img_emb.unsqueeze(1)                # [B, 1, d_model]
 
-def build_caption(row) -> str:
-    """
-    Build a single caption string from a metadata row.
-    Expected columns in row:
-      - productDisplayName
-      - articleType
-      - baseColour
-      - gender
-      - season
-      - usage (optional)
-    """
-    name = str(row.get("productDisplayName", "")).strip()
-    article = str(row.get("articleType", "")).strip()
-    colour = str(row.get("baseColour", "")).strip()
-    gender = _gender_phrase(row.get("gender", ""))
-    season_phrase = _season_phrase(row.get("season", ""))
-    usage = str(row.get("usage", "")).strip()
+        logits = self.decoder(captions_inp, memory)  # [B, T, vocab]
+        return logits
 
-    parts = []
+    @torch.no_grad()
+    def generate(self, images, max_len=30):
+        """
+        Greedy decoding for caption generation.
+        images: [B, 3, 224, 224]
+        returns: [B, T] token ids
+        """
+        self.eval()
+        device = images.device
+        B = images.size(0)
 
-    # Start with "A ..."
-    if colour and article:
-        parts.append(f"A {colour.lower()} {article.lower()}")
-    elif article:
-        parts.append(f"A {article.lower()}")
-    elif name:
-        parts.append(name)
-    else:
-        parts.append("A stylish piece")
+        # Encode image
+        img_feats = self.encoder(images)
+        img_emb = self.img_proj(img_feats)
+        memory = img_emb.unsqueeze(1)  # [B, 1, d_model]
 
-    # Add gender phrase
-    if gender != "everyone":
-        parts[-1] += f" for {gender}"
+        # Start with <sos>
+        captions = torch.full(
+            (B, 1),
+            self.bos_idx,
+            dtype=torch.long,
+            device=device
+        )
 
-    # Add usage if available
-    if usage:
-        parts.append(f"designed for {usage.lower()} use")
+        for _ in range(max_len - 1):
+            logits = self.decoder(captions, memory)       # [B, T, vocab]
+            next_token = logits[:, -1, :].argmax(dim=-1)  # [B]
+            next_token = next_token.unsqueeze(1)          # [B, 1]
 
-    # Add season phrase (generic, no year)
-    if season_phrase:
-        parts.append(season_phrase)
+            captions = torch.cat([captions, next_token], dim=1)
 
-    # Join into one sentence
-    caption = ", ".join(parts)
-    # Ensure it ends with a period
-    if not caption.endswith("."):
-        caption += "."
+            # Early stop if all reached <eos>
+            if torch.all(next_token.squeeze(1) == self.eos_idx):
+                break
 
-    return caption
+        return captions

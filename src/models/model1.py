@@ -84,29 +84,46 @@ class Model1(nn.Module):
         return self.fc_out(out)
 
     @torch.no_grad()
-    def generate(self, images, meta_dict, max_len=30, beam=3):
+    def generate(self, images, meta_dict, max_len=30):
         self.eval()
-        B = images.size(0)
         device = images.device
+        B = images.size(0)
 
-        # extract memory
-        v = self.cnn(images).squeeze()
-        meta_vecs = torch.cat(
-            [self.meta_embeddings[k](meta_dict[k]) for k in self.meta_embeddings],
-            dim=1
-        )
+        # -------------------------------------------------
+        # 1. CNN → pooled vector (same as forward)
+        # -------------------------------------------------
+        v = self.cnn(images)  # [B, 1280, H, W]
+        v = self.avgpool(v)  # [B, 1280, 1, 1]
+        v = torch.flatten(v, 1)  # [B, 1280]
 
-        fused = torch.cat([v, meta_vecs], dim=1)
-        memory = self.fuse(fused).unsqueeze(1)
+        # -------------------------------------------------
+        # 2. Metadata vectors (same as forward)
+        # -------------------------------------------------
+        meta_vecs = []
+        for key, emb in self.meta_embeddings.items():
+            meta_vecs.append(emb(meta_dict[key]))  # each: [B, 16]
+        meta_vecs = torch.cat(meta_vecs, dim=1)  # [B, total_meta_dim]
 
-        # beam search (simplified)
+        # -------------------------------------------------
+        # 3. Fuse and create decoder memory
+        # -------------------------------------------------
+        fused = torch.cat([v, meta_vecs], dim=1)  # [B, 1280 + meta]
+        memory = self.fuse(fused).unsqueeze(1)  # [B, 1, d_model]
+
+        # -------------------------------------------------
+        # 4. Start sequence with <sos>
+        # -------------------------------------------------
         sequences = torch.full((B, 1), self.bos_idx, dtype=torch.long, device=device)
 
-        for _ in range(max_len):
-            tgt = self.token_emb(sequences)
-            logits = self.decoder(tgt, memory)
-            next_logits = logits[:, -1, :]
-            next_token = next_logits.argmax(dim=-1).unsqueeze(1)
+        # -------------------------------------------------
+        # 5. Greedy decoding
+        # -------------------------------------------------
+        for _ in range(max_len - 1):
+            tgt = self.token_emb(sequences)  # [B, T, d_model]
+            out = self.decoder(tgt, memory)  # [B, T, d_model]
+            logits = self.fc_out(out)  # [B, T, vocab]
+
+            next_token = logits[:, -1, :].argmax(dim=-1, keepdim=True)
             sequences = torch.cat([sequences, next_token], dim=1)
 
             if torch.all(next_token.squeeze(1) == self.eos_idx):

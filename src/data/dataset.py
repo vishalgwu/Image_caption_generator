@@ -1,13 +1,13 @@
+# src/data/dataset.py
 import os
 from pathlib import Path
+
 import pandas as pd
 from PIL import Image
 
 import torch
 from torch.utils.data import Dataset
 from torchvision import transforms
-
-from src.data.vocab import FashionVocab
 
 
 def get_image_transform():
@@ -27,33 +27,36 @@ def simple_tokenize(text: str):
 
 class FashionDataset(Dataset):
     def __init__(
-            self,
-            parquet_path,
-            vocab,
-            images_dir="images",
-            max_len=30,
-            caption_column="caption"
+        self,
+        parquet_path,
+        vocab,
+        images_dir="images",
+        max_len=30,
+        caption_column="caption"
     ):
+        """
+        parquet_path: path to train/val parquet with columns ["id", "caption", ...]
+        vocab: FashionVocab instance
+        images_dir: folder with images/<id>.jpg
+        """
         self.df = pd.read_parquet(parquet_path)
         self.images_dir = Path(images_dir)
         self.max_len = max_len
         self.caption_col = caption_column
         self.transform = get_image_transform()
 
-        # Vocab reference
+        # vocab
         self.vocab = vocab
         self.word2idx = vocab.word2idx
-
-        # derive token IDs from vocab
-        self.pad_idx = vocab.word2idx["<pad>"]
-        self.bos_idx = vocab.word2idx["<sos>"]
-        self.eos_idx = vocab.word2idx["<eos>"]
-        self.unk_idx = vocab.word2idx["<unk>"]
+        self.pad_idx = vocab.pad_idx
+        self.bos_idx = vocab.sos_idx
+        self.eos_idx = vocab.eos_idx
+        self.unk_idx = vocab.unk_idx
 
     def __len__(self):
         return len(self.df)
 
-    def numericalize(self, text):
+    def numericalize(self, text: str):
         tokens = simple_tokenize(text)
         ids = [self.bos_idx]
 
@@ -80,4 +83,5 @@ class FashionDataset(Dataset):
         caption_text = str(row[self.caption_col])
         caption_ids = self.numericalize(caption_text)
 
+        # train_baseline + collate_fn expect (image, caption_ids)
         return image, caption_ids
