@@ -16,7 +16,7 @@ class Model1(nn.Module):
         vocab,
         meta_sizes,          # dict: {"gender": n1, "masterCategory": n2, ...}
         d_model=512,
-        meta_emb_dim=32,
+        meta_emb_dim=16,
     ):
         super().__init__()
         self.vocab = vocab
@@ -29,14 +29,10 @@ class Model1(nn.Module):
         # -------------------------------
         # 1. Stronger Vision Encoder
         # -------------------------------
-        resnet = models.resnet101(weights=models.ResNet101_Weights.DEFAULT)
-        modules = list(resnet.children())[:-1]
-        self.cnn = nn.Sequential(*modules)
-
-        for p in self.cnn.parameters():
-            p.requires_grad = False
-
-        self.cnn_dim = 2048
+        mobilenet = models.mobilenet_v2(weights=models.MobileNet_V2_Weights.DEFAULT)
+        self.cnn = mobilenet.features
+        self.avgpool = nn.AdaptiveAvgPool2d((1, 1))
+        self.cnn_dim = 1280
 
         # -------------------------------
         # 2. Metadata Embeddings
@@ -62,7 +58,7 @@ class Model1(nn.Module):
             nhead=8,
             batch_first=True
         )
-        self.decoder = nn.TransformerDecoder(decoder_layer, num_layers=4)
+        self.decoder = nn.TransformerDecoder(decoder_layer, num_layers=2)
 
         self.token_emb = nn.Embedding(self.vocab_size, d_model)
         self.fc_out = nn.Linear(d_model, self.vocab_size)
@@ -70,7 +66,9 @@ class Model1(nn.Module):
     def forward(self, images, captions, meta_dict):
         # vision
         with torch.no_grad():
-            v = self.cnn(images).squeeze()
+            v = self.cnn(images)
+            v = self.avgpool(v)
+            v = torch.flatten(v, 1)
 
         # metadata embeddings
         meta_vecs = []

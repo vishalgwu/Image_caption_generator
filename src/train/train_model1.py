@@ -49,9 +49,11 @@ def main():
 
     train_dl = DataLoader(
         train_ds,
-        batch_size=32,
+        batch_size=16,  # smaller batch for CPU
         shuffle=True,
-        collate_fn=collate_fn_model1
+        collate_fn=collate_fn_model1,
+        num_workers=2,  # CPU parallel loading
+        pin_memory=False  # for CPU only
     )
 
     # model
@@ -60,9 +62,10 @@ def main():
     loss_fn = torch.nn.CrossEntropyLoss(ignore_index=vocab.word2idx["<pad>"])
 
     # training loop
-    for epoch in range(8):
+    for epoch in range(4):  # fewer epochs for CPU
         model.train()
-        total_loss = 0
+        total_loss = 0.0
+        num_batches = 0
 
         for images, captions, meta_dict in train_dl:
             images = images.to(device)
@@ -72,14 +75,19 @@ def main():
             opt.zero_grad()
 
             logits = model(images, captions[:, :-1], meta_dict)
-            loss = loss_fn(logits.reshape(-1, logits.size(-1)), captions[:, 1:].reshape(-1))
+            loss = loss_fn(
+                logits.reshape(-1, logits.size(-1)),
+                captions[:, 1:].reshape(-1)
+            )
 
             loss.backward()
             opt.step()
 
             total_loss += loss.item()
+            num_batches += 1
 
-        print(f"Epoch {epoch+1} | Loss: {total_loss:.4f}")
+        avg_loss = total_loss / num_batches
+        print(f"Epoch {epoch + 1} | Avg loss: {avg_loss:.4f}")
 
     torch.save(model.state_dict(), "model1_best.pth")
 
