@@ -93,8 +93,9 @@ PAD_INDEX = vocab.pad_idx  # or vocab.word2idx["<pad>"]
 criterion = nn.CrossEntropyLoss(ignore_index=PAD_INDEX)
 optimizer = torch.optim.Adam(model.parameters(), lr=LR)
 scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
-    optimizer, mode="min", factor=0.5, patience=2, verbose=True
+    optimizer, mode="min", factor=0.5, patience=2
 )
+
 
 
 # -----------------------------
@@ -214,3 +215,5 @@ for epoch in range(1, NUM_EPOCHS + 1):
 
 print("\nTraining complete.")
 print(f"Best validation loss: {best_loss:.4f}")
+
+
