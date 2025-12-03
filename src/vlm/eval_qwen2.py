@@ -12,30 +12,30 @@ rouge = evaluate.load("rouge")
 preds = []
 refs = []
 
-print("Starting evaluation... This may take some time on CPU.")
+print("Evaluating... this will take some time on CPU.")
 
 for idx, row in df.iterrows():
-    img_id = row["id"]
-    img_path = f"../../images/{img_id}.jpg"
-    true_caption = row["caption"]
+    img_path = f"../../images/{row['id']}.jpg"
+    gt_caption = row["caption"]
 
     try:
         pred_caption = generate_caption(img_path)
     except Exception as e:
-        print(f"Error on image {img_id}: {e}")
+        print(f"Error with image {row['id']}: {e}")
         pred_caption = ""
 
     preds.append(pred_caption)
-    refs.append(true_caption)
+    refs.append(gt_caption)
 
 # BLEU expects list-of-lists for references
 bleu_score = bleu.compute(predictions=preds, references=[[r] for r in refs])
+
 rouge_score = rouge.compute(predictions=preds, references=refs)
 
-print("\n===== Qwen2-VL Evaluation Results =====")
+print("\n===== LLaVA Evaluation Results =====")
 print("BLEU:", bleu_score)
 print("ROUGE:", rouge_score)
 
-df["qwen2_pred"] = preds
-df.to_csv("qwen2_predictions.csv", index=False)
-print("\nSaved predictions to qwen2_predictions.csv")
+df["llava_pred"] = preds
+df.to_csv("llava_predictions.csv", index=False)
+print("\nSaved predictions to llava_predictions.csv")
