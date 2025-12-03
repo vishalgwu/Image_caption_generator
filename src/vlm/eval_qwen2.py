@@ -1,6 +1,6 @@
 import pandas as pd
 import evaluate
-from llava_inference import generate_caption
+from qwen2_inference import generate_caption
 
 VAL_PATH = "../../metadata/val.parquet"
 
