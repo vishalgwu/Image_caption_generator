@@ -112,7 +112,7 @@ def generate_qwen_caption(img_pil, processor, model):
     caption = full.split("assistant")[-1].strip()
     return caption
 
-    return caption.strip()
+
 
 
 print(">>> Qwen2 loader ready.")
