@@ -17,6 +17,7 @@ def merge_data():
 
     print("Merged shape:", df.shape)
     print(df.head())
+    print(df.columns)
 
     # Save final merged dataset
     output_path = os.path.join("..", "metadata", "merged.parquet")

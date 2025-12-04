@@ -1,6 +1,8 @@
 import pandas as pd
 import os
 
+#loading and cleaning raw product metadata.
+
 def load_metadata():
     metadata_path = os.path.join("..", "metadata", "styles.csv")
 
