@@ -94,7 +94,7 @@ class FashionVocab:
         with open(path, "rb") as f:
             vocab = pickle.load(f)
 
-        # 🔥 Backfill attributes if loading an old pickle 🔥
+        # Backfill attributes if loading an old pickle 
         if not hasattr(vocab, "pad_idx"):
             vocab.pad_idx = vocab.word2idx.get(PAD_TOKEN, 0)
         if not hasattr(vocab, "sos_idx"):
