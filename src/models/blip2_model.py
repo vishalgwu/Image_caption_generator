@@ -30,11 +30,13 @@ class BLIP2Config:
         model_name: Hugging Face checkpoint identifier.
         device: torch device string ("cuda"/"cpu"/"mps").
         max_new_tokens: maximum length for generated captions.
+        lora_weights: optional path/Hub id to LoRA adapter weights.
     """
 
-    model_name: str = "Salesforce/blip2-opt-2.7b"
+    model_name: str = "ybelkada/blip2-opt-2.7b-fp16-sharded"
     device: str = "cuda" if torch.cuda.is_available() else "cpu"
     max_new_tokens: int = 50
+    lora_weights: Optional[str] = None
 
 
 class BLIP2Captioner:
@@ -49,10 +51,27 @@ class BLIP2Captioner:
     def __init__(self, config: Optional[BLIP2Config] = None) -> None:
         self.config = config or BLIP2Config()
         self.processor = Blip2Processor.from_pretrained(self.config.model_name)
+        dtype = torch.float16 if "cuda" in self.config.device else torch.float32
         self.model = Blip2ForConditionalGeneration.from_pretrained(
             self.config.model_name,
-            torch_dtype=torch.float16 if "cuda" in self.config.device else torch.float32,
-        ).to(self.config.device)
+            torch_dtype=dtype,
+        )
+
+        if self.config.lora_weights:
+            try:
+                from peft import PeftModel  # type: ignore
+            except ImportError as exc:  # pragma: no cover
+                raise ImportError(
+                    "`peft` is required to load LoRA adapters. Install it via `pip install peft`."
+                ) from exc
+
+            self.model = PeftModel.from_pretrained(
+                self.model,
+                self.config.lora_weights,
+                is_trainable=False
+            ).merge_and_unload()
+
+        self.model = self.model.to(self.config.device)
 
     @torch.no_grad()
     def generate(self, image, prompt: str = "Describe this product in one sentence.") -> str:
