@@ -78,34 +78,33 @@ Image_caption_generator/
 └── README.md                         # <-- this file
 
 
+```
+``
 
-
-# --------------------------------------------------------
 # 0. Clone repo and go into project folder
-# --------------------------------------------------------
+
 git clone <your-repo-url>.git
 cd Image_caption_generator
-
-# --------------------------------------------------------
+```
+```
 # 1. Create + activate virtual environment
-# --------------------------------------------------------
 python -m venv .venv
 source .venv/bin/activate   # Windows: .venv\Scripts\activate
 
 # Upgrade pip
 pip install --upgrade pip
 
-# --------------------------------------------------------
+
 # 2. Install dependencies
 # --------------------------------------------------------
 pip install -r req.txt
 
-# --------------------------------------------------------
+```
+```
 # 3. (One-time) Data preprocessing pipeline
 #    Assumes:
 #       - images/ contains all image files
 #       - metadata/styles.csv contains the Myntra metadata
-# --------------------------------------------------------
 
 # 3.1 Build cleaned metadata parquet
 python src/vlm/metadata.py        # cleans styles.csv -> metadata/merged.parquet
@@ -124,10 +123,10 @@ python src/vlm/build_vocab.py     # writes metadata/vocab.json + vocab.pkl
 
 # 3.6 Build caption dataset parquet (text + meta)
 python src/vlm/build_captions.py  # writes metadata/metadata_with_captions.parquet
+```
 
-# --------------------------------------------------------
+```
 # 4. Train models (optional if you use shipped checkpoints)
-# --------------------------------------------------------
 
 # 4.1 Train baseline CNN + Transformer caption model
 python src/train/train_baseline.py     # saves baseline_best.pth
@@ -145,9 +144,10 @@ python src/train/train_florence2.py
 python src/train/train_vllm_blip2.py
 python src/eval/eval_vllm.py
 
-# --------------------------------------------------------
+
+```
+```
 # 5. Qwen2-VL explainability pipeline (semantic comparison)
-# --------------------------------------------------------
 
 # 5.1 Run Qwen2-VL to generate captions + token scores
 python src/vlm/qwen2_inference.py
@@ -157,19 +157,20 @@ python src/vlm/eval_qwen2.py
 
 #  -> Produces CSVs used by the Streamlit Explainability tab
 #     (token importance, overlap scores, difference heatmaps etc.)
+```
+```
 
-# --------------------------------------------------------
+```
 # 6. Launch Streamlit dashboard
-# --------------------------------------------------------
 streamlit run app.py
 
 # Streamlit will open in the browser (default: http://localhost:8501)
-# Use the 'Caption Generator' and 'Explainability (Baseline + Qwen)' tabs.
+# Use the 'Caption Generator' and 'Explainability (Baseline and  Qwen)' tabs.
 
 
+```
 
-
-
+```
 
 # Environment Setup
 Install Python 3.10+.
@@ -179,7 +180,7 @@ python -m venv .venv
 source .venv/bin/activate          # Windows: .venv\Scripts\activate
 pip install --upgrade pip
 pip install -r req.txt
-
+```
 Now
 # Data & Metadata
 
@@ -198,8 +199,9 @@ python src/vlm/image_ing.py
 python src/vlm/make_splits.py
 python src/vlm/build_vocab.py
 python src/vlm/build_captions.py
-
-The out put will be like -
+```
+```
+#The out put will be like -
 Outputs:
 
 metadata/merged.parquet
@@ -210,4 +212,5 @@ metadata/vocab.json, vocab.pkl
 
 metadata/metadata_with_captions.parquet
 
+```
 
