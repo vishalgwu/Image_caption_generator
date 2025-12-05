@@ -187,3 +187,71 @@ def explain_qwen_semantic(caption, encoder):
     if scores.max() > 0:
         scores = scores / scores.max()
     return tokens, scores
+# -------------------------------------------------------------------
+# Visualization Helpers
+# -------------------------------------------------------------------
+def render_colored_caption(tokens, scores, label):
+    if not tokens:
+        st.info(f"No tokens to display for {label}")
+        return
+    max_s = max(scores)
+    spans = []
+    for tok, s in zip(tokens, scores):
+        alpha = 0.2 + 0.6 * (s / max_s)
+        color = f"rgba(255, 99, 71, {alpha:.2f})"
+        spans.append(
+            f"<span style='background:{color}; padding:3px; margin:2px; "
+            f"border-radius:5px; display:inline-block;'>{tok}</span>"
+        )
+    st.markdown(" ".join(spans), unsafe_allow_html=True)
+
+def plot_bar_chart(tokens, scores, title):
+    if len(tokens) == 0:
+        st.info("No token importance available.")
+        return
+    import pandas as pd
+    import altair as alt
+    df = pd.DataFrame({"token": tokens, "importance": scores})
+    chart = (
+        alt.Chart(df)
+        .mark_bar()
+        .encode(
+            x=alt.X("token", sort=None),
+            y=alt.Y("importance", scale=alt.Scale(domain=[0, 1])),
+            tooltip=["token", "importance"]
+        )
+        .properties(width=900, height=250, title=title)
+    )
+    st.altair_chart(chart, use_container_width=True)
+
+# Jaccard Similarity (Caption Overlap)
+def jaccard_similarity(set_a, set_b):
+    if not set_a and not set_b:
+        return 1.0
+    inter = len(set_a & set_b)
+    union = len(set_a | set_b)
+    return inter / union if union > 0 else 0.0
+
+# -------------------------------------------------------------------
+# Streamlit Tabs
+# -------------------------------------------------------------------
+tab1, tab2 = st.tabs(["📌 Caption Generator", "🧪 Explainability (Baseline + Qwen)"])
+
+# ===================== TAB 1 =============================
+with tab1:
+    st.subheader("Upload an Image")
+
+    uploaded = st.file_uploader("Upload", type=["jpg", "jpeg", "png"])
+
+    model_choice = st.selectbox("Choose model", ["Baseline Transformer", "Qwen2-VL"])
+
+    if uploaded:
+        img = Image.open(uploaded).convert("RGB")
+        st.image(img, width=350)
+
+        if st.button("Generate Caption"):
+            if model_choice == "Baseline Transformer":
+                caption, _ = generate_baseline_caption(img, baseline_model, vocab)
+            else:
+                caption = generate_qwen_caption(img, processor, qwen_model)
+            st.success(caption)
