@@ -88,3 +88,52 @@ class TransformerDecoderModule(nn.Module):
 
         logits = self.output_proj(decoded)
         return logits
+
+    def compute_token_importance(self, tgt_tokens, memory):
+        """
+        Gradient-based token importance.
+        Currently supports batch_size = 1.
+
+        tgt_tokens: (1, T)
+        memory: (1, S, d_model)
+        returns:
+          importance: (T,) tensor in [0,1]
+        """
+        device = tgt_tokens.device
+        B, T = tgt_tokens.size()
+        if B != 1:
+            raise ValueError("compute_token_importance currently supports batch_size=1 only.")
+
+        # 1) Embed tokens with grad enabled
+        tgt_emb = self.embedding(tgt_tokens) * math.sqrt(self.d_model)  # (1, T, d_model)
+        tgt_emb.requires_grad_(True)
+        tgt_emb.retain_grad()
+
+        # 2) Positional encoding
+        tgt_emb_pe = self.pos_encoder(tgt_emb)  # (1, T, d_model)
+
+        # 3) Masks
+        tgt_mask = self._generate_square_subsequent_mask(T, device=device)  # (T, T)
+        tgt_key_padding_mask = (tgt_tokens == self.pad_idx)  # (1, T)
+
+        # 4) Decoder forward
+        decoded = self.decoder(
+            tgt=tgt_emb_pe,
+            memory=memory,
+            tgt_mask=tgt_mask,
+            tgt_key_padding_mask=tgt_key_padding_mask,
+        )  # (1, T, d_model)
+
+        logits = self.output_proj(decoded)  # (1, T, vocab)
+
+        # 5) Scalar objective – just something that depends on all tokens
+        score = logits.pow(2).sum()
+
+        # 6) Backprop to token embeddings
+        self.zero_grad(set_to_none=True)
+        score.backward()
+
+        grads = tgt_emb.grad.detach().norm(dim=-1).squeeze(0)  # (T,)
+        # Normalize 0–1
+        grads = grads / (grads.max() + 1e-8)
+        return grads

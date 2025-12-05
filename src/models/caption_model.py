@@ -86,3 +86,47 @@ class CaptionModel(nn.Module):
                 break
 
         return captions
+
+    def explain_tokens(self, images, max_len: int = 30):
+        """
+        Compute token-level importance for a single image.
+
+        images: (1, 3, 224, 224)
+        returns:
+          caption_text: str
+          tokens: List[str] (w/o special tokens)
+          importance: List[float] (0–1, aligned with tokens)
+        """
+        self.eval()
+        if images.size(0) != 1:
+            raise ValueError("explain_tokens currently supports batch_size=1 only.")
+
+        device = images.device
+
+        # 1) Generate caption ids (no gradient)
+        with torch.no_grad():
+            gen_ids = self.generate(images, max_len=max_len)  # (1, T)
+
+        # 2) Compute encoder memory
+        img_feats = self.encoder(images)
+        img_emb = self.img_proj(img_feats)
+        memory = img_emb.unsqueeze(1)  # (1, 1, d_model)
+
+        # 3) Compute token importance via decoder
+        self.zero_grad(set_to_none=True)
+        importance_tensor = self.decoder.compute_token_importance(gen_ids, memory)  # (T,)
+
+        # 4) Map ids -> tokens, filter special tokens
+        token_ids = gen_ids[0].tolist()
+        raw_tokens = [self.vocab.idx2word[idx] for idx in token_ids]
+
+        tokens = []
+        importance = []
+        for tok, score in zip(raw_tokens, importance_tensor.tolist()):
+            if tok in ("<pad>", "<sos>", "<eos>"):
+                continue
+            tokens.append(tok)
+            importance.append(score)
+
+        caption_text = " ".join(tokens)
+        return caption_text, tokens, importance
