@@ -144,4 +144,46 @@ def qwen_confidence_from_scores(scores):
     return float(np.clip(np.mean(scores), 0.0, 1.0))
 
 # -------------------------------------------------------------------
-# 
+# SentenceTransformer for Semantic Explainability
+# -------------------------------------------------------------------
+@st.cache_resource
+def load_semantic_encoder():
+    if SentenceTransformer is None:
+        st.error("Install: pip install sentence-transformers")
+        return None
+    return SentenceTransformer("sentence-transformers/all-mpnet-base-v2")
+
+semantic_encoder = load_semantic_encoder()
+
+# Tokenize
+def tokenize_caption(caption):
+    raw = caption.strip().split()
+    return [t.strip(".,!?;:") for t in raw if t.strip(".,!?;:")]
+
+# Qwen Semantic Explainability
+def explain_qwen_semantic(caption, encoder):
+    if encoder is None:
+        return [], np.array([])
+    caption = caption.strip()
+    if not caption:
+        return [], np.array([])
+
+    tokens = tokenize_caption(caption)
+    if not tokens:
+        return [], np.array([])
+
+    full_emb = encoder.encode([caption], normalize_embeddings=True)[0]
+
+    masked_caps = []
+    for i in range(len(tokens)):
+        masked = tokens.copy()
+        masked[i] = "[MASK]"
+        masked_caps.append(" ".join(masked))
+
+    masked_embs = encoder.encode(masked_caps, normalize_embeddings=True)
+    sims = (masked_embs * full_emb).sum(axis=1)
+    scores = 1.0 - sims
+    scores = np.maximum(scores, 0)
+    if scores.max() > 0:
+        scores = scores / scores.max()
+    return tokens, scores
