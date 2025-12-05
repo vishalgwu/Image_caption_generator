@@ -255,3 +255,126 @@ with tab1:
             else:
                 caption = generate_qwen_caption(img, processor, qwen_model)
             st.success(caption)
+# ===================== TAB 2 =============================
+with tab2:
+    st.subheader("Explainability")
+
+    exp_file = st.file_uploader(
+        "Upload image (both models analyzed)", type=["jpg", "jpeg", "png"], key="exp"
+    )
+
+    if exp_file:
+        exp_img = Image.open(exp_file).convert("RGB")
+        st.image(exp_img, width=260)
+
+        if st.button("Run Explainability"):
+
+            # ----------------- BASELINE -----------------
+            st.markdown("## 🔵 Baseline Transformer")
+            base_caption, img_tensor = generate_baseline_caption(
+                exp_img, baseline_model, vocab
+            )
+            st.success(base_caption)
+
+            try:
+                _, base_tokens, base_scores = baseline_model.explain_tokens(
+                    img_tensor, max_len=30
+                )
+                base_scores = (
+                    base_scores.detach().cpu().numpy()
+                    if hasattr(base_scores, "detach")
+                    else np.asarray(base_scores)
+                )
+            except Exception as e:
+                st.error(f"Baseline explainability error:\n{e}")
+                base_tokens, base_scores = [], np.array([])
+
+            base_conf = baseline_confidence_from_tokens(base_tokens)
+            st.markdown(f"**Confidence:** `{base_conf:.2f}`")
+
+            if base_tokens:
+                plot_bar_chart(base_tokens, base_scores, "Baseline Token Importance")
+                render_colored_caption(base_tokens, base_scores, "Baseline")
+
+            st.markdown("---")
+
+            # ----------------- QWEN -----------------
+            st.markdown("## 🟣 Qwen2-VL (Semantic Explainability)")
+            q_caption = generate_qwen_caption(exp_img, processor, qwen_model)
+            st.success(q_caption)
+
+            q_tokens, q_scores = explain_qwen_semantic(q_caption, semantic_encoder)
+            q_conf = qwen_confidence_from_scores(q_scores)
+            st.markdown(f"**Confidence:** `{q_conf:.2f}`")
+
+            if q_tokens:
+                plot_bar_chart(q_tokens, q_scores, "Qwen Semantic Importance")
+                render_colored_caption(q_tokens, q_scores, "Qwen2-VL")
+
+            st.markdown("---")
+
+            # ----------------- COMPARISON -----------------
+            st.markdown("## 🔄 Baseline vs Qwen Comparison")
+
+            base_set = set(t.lower() for t in base_tokens)
+            q_set = set(t.lower() for t in q_tokens)
+
+            sim = jaccard_similarity(base_set, q_set)
+            st.markdown(f"**Token-overlap similarity:** `{sim:.2f}`")
+
+            cols = st.columns(2)
+            with cols[0]:
+                st.markdown("**Baseline-only Tokens:**")
+                base_only = sorted(base_set - q_set)
+                st.write(", ".join(base_only) if base_only else "—")
+
+            with cols[1]:
+                st.markdown("**Qwen-only Tokens:**")
+                q_only = sorted(q_set - base_set)
+                st.write(", ".join(q_only) if q_only else "—")
+
+            st.markdown("---")
+
+            # ----------------- HEATMAP (2 Columns Only) -----------------
+            st.markdown("## 🔥 Token Importance Heatmap")
+
+            if len(base_tokens) == 0 or len(q_tokens) == 0:
+                st.info("Need valid importance values from both models.")
+            else:
+                import pandas as pd
+                import altair as alt
+
+                all_tokens = list(dict.fromkeys(base_tokens + q_tokens))
+                trans_scores_aligned = []
+                qwen_scores_aligned = []
+
+                for tok in all_tokens:
+                    trans_scores_aligned.append(
+                        float(base_scores[base_tokens.index(tok)]) if tok in base_tokens else 0.0
+                    )
+                    qwen_scores_aligned.append(
+                        float(q_scores[q_tokens.index(tok)]) if tok in q_tokens else 0.0
+                    )
+
+                df = pd.DataFrame({
+                    "token": all_tokens,
+                    "Transformer": trans_scores_aligned,
+                    "Qwen": qwen_scores_aligned
+                })
+
+                df_melt = df.melt(id_vars="token", var_name="Model", value_name="Importance")
+
+                heatmap = (
+                    alt.Chart(df_melt)
+                    .mark_rect()
+                    .encode(
+                        x=alt.X("token:N", sort=None),
+                        y=alt.Y("Model:N"),
+                        color=alt.Color("Importance:Q", scale=alt.Scale(scheme="reds")),
+                        tooltip=["token", "Model", "Importance"],
+                    )
+                    .properties(width=800, height=200)
+                )
+
+                st.altair_chart(heatmap, use_container_width=True)
+
