@@ -1,7 +1,7 @@
 # Image_caption_generator
 Generates on-brand fashion captions using images and product data. 
 
-# 🖼️ Image Caption Generator (Baseline + Qwen2-VL)
+#  Image Caption Generator (Baseline   And Qwen2-VL)
 
 Fashion image captioning system with:
 - **Baseline CNN + Transformer** caption model (trained from scratch on Myntra dataset).
@@ -9,6 +9,66 @@ Fashion image captioning system with:
 - **Streamlit dashboard** for image upload, caption generation, token-level importance and model comparison. :contentReference[oaicite:0]{index=0}
 
 ---
+## Overview
+
+This repository builds an image-captioning / VLM (Vision-Language) pipeline and a Streamlit-based explainability dashboard. The project includes data preprocessing, dataset building, training scripts for several models (baseline CNN+Transformer, metadata-enhanced models, and optional experiments with BLIP2 / Florence2 / vLLM), evaluation, and a Streamlit UI for running the caption generator and explainability visualizations.
+
+
+
+## Prerequisites
+
+* Python 3.9+ recommended.
+* `git` installed.
+* GPU recommended for training (CUDA + drivers installed) but not required for running preprocessing or the Streamlit demo.
+
+
+
+## Quick start (complete flow)
+
+### 0. Clone the repository
+
+```bash
+git clone <your-repo-url>.git
+cd Image_caption_generator
+```
+
+### 1. Create and activate a virtual environment
+
+Unix / macOS:
+
+```bash
+python -m venv .venv
+source .venv/bin/activate
+```
+
+Windows (PowerShell):
+
+```powershell
+python -m venv .venv
+.\.venv\Scripts\Activate.ps1
+```
+
+Windows (cmd.exe):
+
+```cmd
+python -m venv .venv
+.venv\Scripts\activate.bat
+```
+
+Upgrade pip and install dependencies:
+
+```bash
+pip install --upgrade pip
+# The repository may include either `requirements.txt` or `req.txt`.
+# Preferred file name: requirements.txt. If your repo has req.txt, use that instead.
+pip install -r requirements.txt
+# or (if present)
+# pip install -r req.txt
+```
+
+
+
+
 
 ## 1. Folder Structure
 
@@ -80,64 +140,8 @@ Image_caption_generator/
 ```
 
 
----
 
-## Overview
 
-This repository builds an image-captioning / VLM (Vision-Language) pipeline and a Streamlit-based explainability dashboard. The project includes data preprocessing, dataset building, training scripts for several models (baseline CNN+Transformer, metadata-enhanced models, and optional experiments with BLIP2 / Florence2 / vLLM), evaluation, and a Streamlit UI for running the caption generator and explainability visualizations.
-
----
-
-## Prerequisites
-
-* Python 3.9+ recommended.
-* `git` installed.
-* GPU recommended for training (CUDA + drivers installed) but not required for running preprocessing or the Streamlit demo.
-
----
-
-## Quick start (complete flow)
-
-### 0. Clone the repository
-
-```bash
-git clone <your-repo-url>.git
-cd Image_caption_generator
-```
-
-### 1. Create and activate a virtual environment
-
-Unix / macOS:
-
-```bash
-python -m venv .venv
-source .venv/bin/activate
-```
-
-Windows (PowerShell):
-
-```powershell
-python -m venv .venv
-.\.venv\Scripts\Activate.ps1
-```
-
-Windows (cmd.exe):
-
-```cmd
-python -m venv .venv
-.venv\Scripts\activate.bat
-```
-
-Upgrade pip and install dependencies:
-
-```bash
-pip install --upgrade pip
-# The repository may include either `requirements.txt` or `req.txt`.
-# Preferred file name: requirements.txt. If your repo has req.txt, use that instead.
-pip install -r requirements.txt
-# or (if present)
-# pip install -r req.txt
-```
 
 ---
 
