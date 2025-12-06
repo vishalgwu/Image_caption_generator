@@ -7,6 +7,7 @@ Fashion image captioning system with:
 - **Baseline CNN + Transformer** caption model (trained from scratch on Myntra dataset).
 - **Qwen2-VL** vision-language model for **semantic explainability** and caption comparison.
 - **Streamlit dashboard** for image upload, caption generation, token-level importance and model comparison. :contentReference[oaicite:0]{index=0}
+![](https://github.com/vishalgwu/Image_caption_generator/blob/main/Project_images/Baseline-model-word-imp.png)
 
 ---
 ## Overview
