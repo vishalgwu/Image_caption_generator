@@ -79,138 +79,123 @@ Image_caption_generator/
 
 
 ```
-``
-
-# 0. Clone repo and go into project folder
-
+# --------------------------------------------------------
+# 0. Clone the repository
+# --------------------------------------------------------
 git clone <your-repo-url>.git
 cd Image_caption_generator
-```
-```
-# 1. Create + activate virtual environment
-python -m venv .venv
-source .venv/bin/activate   # Windows: .venv\Scripts\activate
 
-# Upgrade pip
-pip install --upgrade pip
-
-
-# 2. Install dependencies
 # --------------------------------------------------------
+# 1. Create and activate virtual environment
+# --------------------------------------------------------
+python -m venv .venv
+source .venv/bin/activate        # Windows: .venv\Scripts\activate
+pip install --upgrade pip
 pip install -r req.txt
 
-```
-```
-# 3. (One-time) Data preprocessing pipeline
-#    Assumes:
-#       - images/ contains all image files
-#       - metadata/styles.csv contains the Myntra metadata
 
-# 3.1 Build cleaned metadata parquet
-python src/vlm/metadata.py        # cleans styles.csv -> metadata/merged.parquet
+# ========================================================
+# 2. (One-time) Data Preprocessing Pipeline
+# ========================================================
+# Requirements:
+#   - images/ contains all image files (Myntra / ABO / custom dataset)
+#   - metadata/styles.csv contains item metadata
 
-# 3.2 Merge metadata with image availability
-python src/vlm/merge.py           # adds image paths, drops missing images
+# 2.1 Clean metadata → merged.parquet
+python src/vlm/metadata.py
 
-# 3.3 Optional image ingestion checks / thumbnails
-python src/vlm/image_ing.py       # verifies images folder
+# 2.2 Merge metadata with image paths
+python src/vlm/merge.py
 
-# 3.4 Train/val/test split
-python src/vlm/make_splits.py     # outputs train/val/test parquet files
+# 2.3 Optional: verify images folder
+python src/vlm/image_ing.py
 
-# 3.5 Build vocabulary from training captions
-python src/vlm/build_vocab.py     # writes metadata/vocab.json + vocab.pkl
+# 2.4 Create train/val/test parquet splits
+python src/vlm/make_splits.py
 
-# 3.6 Build caption dataset parquet (text + meta)
-python src/vlm/build_captions.py  # writes metadata/metadata_with_captions.parquet
-```
+# 2.5 Build vocabulary
+python src/vlm/build_vocab.py
 
-```
-# 4. Train models (optional if you use shipped checkpoints)
+# 2.6 Build caption training parquet
+python src/vlm/build_captions.py
 
-# 4.1 Train baseline CNN + Transformer caption model
-python src/train/train_baseline.py     # saves baseline_best.pth
+# Output Files:
+# metadata/merged.parquet
+# metadata/train.parquet
+# metadata/val.parquet
+# metadata/test.parquet
+# metadata/vocab.json
+# metadata/vocab.pkl
+# metadata/metadata_with_captions.parquet
 
-# 4.2 Evaluate baseline on validation/test
-python src/eval/eval_baseline.py       # writes metadata/baseline_eval.csv
 
-# 4.3 (Optional) Train stronger metadata-aware model
-python src/train/train_model1.py       # saves model1 checkpoint
-python src/eval/eval_model1.py         # writes metadata/model1_eval.csv
+# ========================================================
+# 3. Model Training & Evaluation (Optional)
+# ========================================================
 
-# 4.4 (Optional) BLIP2 / Florence2 / vLLM experiments
-python src/train/train_blip2_lora.py   # LoRA finetuning for BLIP2
+# 3.1 Train baseline CNN + Transformer caption model
+python src/train/train_baseline.py
+
+# 3.2 Evaluate baseline
+python src/eval/eval_baseline.py     # writes metadata/baseline_eval.csv
+
+# 3.3 Train metadata-enhanced stronger model
+python src/train/train_model1.py
+
+# 3.4 Evaluate stronger model
+python src/eval/eval_model1.py       # writes metadata/model1_eval.csv
+
+# 3.5 Optional: BLIP2 / Florence2 / vLLM experiments
+python src/train/train_blip2_lora.py
 python src/train/train_florence2.py
 python src/train/train_vllm_blip2.py
 python src/eval/eval_vllm.py
 
 
-```
-```
-# 5. Qwen2-VL explainability pipeline (semantic comparison)
+# ========================================================
+# 4. Qwen2-VL Semantic Explainability Pipeline
+# ========================================================
 
-# 5.1 Run Qwen2-VL to generate captions + token scores
+# 4.1 Generate Qwen2-VL captions + token importance
 python src/vlm/qwen2_inference.py
 
-# 5.2 Compare Qwen2-VL captions with baseline captions
+# 4.2 Compare baseline vs Qwen2 captions
 python src/vlm/eval_qwen2.py
 
-#  -> Produces CSVs used by the Streamlit Explainability tab
-#     (token importance, overlap scores, difference heatmaps etc.)
-```
-```
+# Produces CSV files for Streamlit explainability tab:
+# - Token importance scores
+# - Caption similarity metrics
+# - Importance-difference heatmaps
+# - Baseline vs Qwen2-VL caption comparisons
 
-```
-# 6. Launch Streamlit dashboard
+
+# ========================================================
+# 5. Launch Streamlit Dashboard
+# ========================================================
 streamlit run app.py
+# Opens at: http://localhost:8501
+# Tabs:
+#  • Caption Generator
+#  • Explainability (Baseline + Qwen2-VL)
 
-# Streamlit will open in the browser (default: http://localhost:8501)
-# Use the 'Caption Generator' and 'Explainability (Baseline and  Qwen)' tabs.
+
+# ========================================================
+# 6. Environment Reminder
+# ========================================================
+# Always activate your environment before running scripts:
+# source .venv/bin/activate
+# Windows: .venv\Scripts\activate
 
 
-```
-
-```
-
-# Environment Setup
-Install Python 3.10+.
-
-From project root:
-python -m venv .venv
-source .venv/bin/activate          # Windows: .venv\Scripts\activate
-pip install --upgrade pip
-pip install -r req.txt
-```
-Now
-# Data & Metadata
-
-Place data as follows:
-
-All images go into images/. ( Download from the  .@article{Qwen2-VL, title={Qwen2-VL: Enhancing Vision-Language Model's Perception of the 
-World at Any Resolution}, Or get dataset from ABO data( amazon dataset) 
-
-The original Myntra metadata CSV is metadata/styles.csv.
-
-Then run the preprocessing scripts (once):
-
-python src/vlm/metadata.py
-python src/vlm/merge.py
-python src/vlm/image_ing.py
-python src/vlm/make_splits.py
-python src/vlm/build_vocab.py
-python src/vlm/build_captions.py
-```
-```
-#The out put will be like -
-Outputs:
-
-metadata/merged.parquet
-
-metadata/train.parquet, val.parquet, test.parquet
-
-metadata/vocab.json, vocab.pkl
-
-metadata/metadata_with_captions.parquet
-
-```
-
+# ========================================================
+# 7. Citations
+# ========================================================
+# Dataset: Myntra / Amazon ABO / or equivalent image dataset
+#
+# Qwen2-VL Paper:
+# @article{Qwen2-VL,
+#  title={Qwen2-VL: Enhancing Vision-Language Model's Perception of the World at Any Resolution},
+#  author={Peng Wang and Shuai Bai and Sinan Tan and ... Junyang Lin},
+#  journal={arXiv preprint arXiv:2409.12191},
+#  year={2024}
+# }
