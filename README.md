@@ -229,6 +229,9 @@ Outputs used by Streamlit:
 * Caption tables for baseline vs Qwen2-VL
 
 ---
+<p align="center">
+  <img src="https://github.com/vishalgwu/Image_caption_generator/blob/main/Project_images/Image_caption_generator-1.png" width="600">
+</p>
 
 ## 5. Launch Streamlit dashboard (explainability + caption generator)
 
