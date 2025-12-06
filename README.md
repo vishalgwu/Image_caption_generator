@@ -28,7 +28,7 @@ This repository builds an image-captioning / VLM (Vision-Language) pipeline and 
 ### 0. Clone the repository
 
 ```bash
-git clone <your-repo-url>.git
+git clone https://github.com/vishalgwu/Image_caption_generator.git
 cd Image_caption_generator
 ```
 
