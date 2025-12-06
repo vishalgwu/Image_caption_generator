@@ -77,13 +77,13 @@ Image_caption_generator/
 ├── vocab.pkl                         # (duplicate copy if needed by app)
 └── README.md                         # <-- this file
 
-
 ```
 # --------------------------------------------------------
 # 0. Clone the repository
 # --------------------------------------------------------
 git clone <your-repo-url>.git
 cd Image_caption_generator
+
 
 # --------------------------------------------------------
 # 1. Create and activate virtual environment
@@ -94,12 +94,12 @@ pip install --upgrade pip
 pip install -r req.txt
 
 
-# ========================================================
+# --------------------------------------------------------
 # 2. (One-time) Data Preprocessing Pipeline
-# ========================================================
+# --------------------------------------------------------
 # Requirements:
-#   - images/ contains all image files (Myntra / ABO / custom dataset)
-#   - metadata/styles.csv contains item metadata
+#   - images/ contains all dataset images (Myntra / ABO / custom)
+#   - metadata/styles.csv contains metadata
 
 # 2.1 Clean metadata → merged.parquet
 python src/vlm/metadata.py
@@ -110,40 +110,40 @@ python src/vlm/merge.py
 # 2.3 Optional: verify images folder
 python src/vlm/image_ing.py
 
-# 2.4 Create train/val/test parquet splits
+# 2.4 Create train/val/test splits
 python src/vlm/make_splits.py
 
 # 2.5 Build vocabulary
 python src/vlm/build_vocab.py
 
-# 2.6 Build caption training parquet
+# 2.6 Build final caption dataset parquet
 python src/vlm/build_captions.py
 
-# Output Files:
-# metadata/merged.parquet
-# metadata/train.parquet
-# metadata/val.parquet
-# metadata/test.parquet
-# metadata/vocab.json
-# metadata/vocab.pkl
-# metadata/metadata_with_captions.parquet
+# Output generated:
+#   metadata/merged.parquet
+#   metadata/train.parquet
+#   metadata/val.parquet
+#   metadata/test.parquet
+#   metadata/vocab.json
+#   metadata/vocab.pkl
+#   metadata/metadata_with_captions.parquet
 
 
-# ========================================================
-# 3. Model Training & Evaluation (Optional)
-# ========================================================
+# --------------------------------------------------------
+# 3. Model Training (Optional)
+# --------------------------------------------------------
 
-# 3.1 Train baseline CNN + Transformer caption model
+# 3.1 Train baseline CNN + Transformer
 python src/train/train_baseline.py
 
-# 3.2 Evaluate baseline
-python src/eval/eval_baseline.py     # writes metadata/baseline_eval.csv
+# 3.2 Evaluate baseline (BLEU/ROUGE, etc.)
+python src/eval/eval_baseline.py     # outputs metadata/baseline_eval.csv
 
-# 3.3 Train metadata-enhanced stronger model
+# 3.3 Train metadata-enhanced Model1
 python src/train/train_model1.py
 
-# 3.4 Evaluate stronger model
-python src/eval/eval_model1.py       # writes metadata/model1_eval.csv
+# 3.4 Evaluate Model1
+python src/eval/eval_model1.py       # outputs metadata/model1_eval.csv
 
 # 3.5 Optional: BLIP2 / Florence2 / vLLM experiments
 python src/train/train_blip2_lora.py
@@ -152,50 +152,50 @@ python src/train/train_vllm_blip2.py
 python src/eval/eval_vllm.py
 
 
-# ========================================================
-# 4. Qwen2-VL Semantic Explainability Pipeline
-# ========================================================
+# --------------------------------------------------------
+# 4. Qwen2-VL Explainability Pipeline
+# --------------------------------------------------------
 
 # 4.1 Generate Qwen2-VL captions + token importance
 python src/vlm/qwen2_inference.py
 
-# 4.2 Compare baseline vs Qwen2 captions
+# 4.2 Compare baseline vs Qwen2-VL captions
 python src/vlm/eval_qwen2.py
 
-# Produces CSV files for Streamlit explainability tab:
-# - Token importance scores
-# - Caption similarity metrics
-# - Importance-difference heatmaps
-# - Baseline vs Qwen2-VL caption comparisons
+# Produces CSVs for Streamlit explainability:
+#   - Token importance scores
+#   - Caption similarity metrics
+#   - Importance heatmaps
+#   - Baseline vs Qwen2-VL caption tables
 
 
-# ========================================================
+# --------------------------------------------------------
 # 5. Launch Streamlit Dashboard
-# ========================================================
+# --------------------------------------------------------
 streamlit run app.py
 # Opens at: http://localhost:8501
 # Tabs:
-#  • Caption Generator
-#  • Explainability (Baseline + Qwen2-VL)
+#   • Caption Generator
+#   • Explainability (Baseline + Qwen2-VL)
 
 
-# ========================================================
-# 6. Environment Reminder
-# ========================================================
+# --------------------------------------------------------
+# 6. Important: Environment Reminder
+# --------------------------------------------------------
 # Always activate your environment before running scripts:
-# source .venv/bin/activate
-# Windows: .venv\Scripts\activate
+#   source .venv/bin/activate
+#   Windows: .venv\Scripts\activate
 
 
-# ========================================================
+# --------------------------------------------------------
 # 7. Citations
-# ========================================================
-# Dataset: Myntra / Amazon ABO / or equivalent image dataset
+# --------------------------------------------------------
+# Dataset: Myntra / Amazon ABO / or equivalent dataset
 #
-# Qwen2-VL Paper:
+# Qwen2-VL:
 # @article{Qwen2-VL,
-#  title={Qwen2-VL: Enhancing Vision-Language Model's Perception of the World at Any Resolution},
-#  author={Peng Wang and Shuai Bai and Sinan Tan and ... Junyang Lin},
-#  journal={arXiv preprint arXiv:2409.12191},
-#  year={2024}
+#   title={Qwen2-VL: Enhancing Vision-Language Model's Perception of the World at Any Resolution},
+#   author={Peng Wang and Shuai Bai and Sinan Tan and ... Junyang Lin},
+#   journal={arXiv preprint arXiv:2409.12191},
+#   year={2024}
 # }
