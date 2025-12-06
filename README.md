@@ -207,6 +207,16 @@ python src/train/train_florence2.py
 python src/train/train_vllm_blip2.py
 python src/eval/eval_vllm.py
 ```
+<p align="center">
+  <img src="https://github.com/vishalgwu/Image_caption_generator/blob/main/Project_images/Image_caption_generator-1.png" width="600">
+</p>
+<p align="center">
+  <img src="https://github.com/vishalgwu/Image_caption_generator/blob/main/Project_images/Qwan_model_imp_pic.png" width="600">
+</p>
+<p align="center">
+  <img src="https://github.com/vishalgwu/Image_caption_generator/blob/main/Project_images/model_compare_keyword.png" width="600">
+</p>
+
 
 ---
 
@@ -229,9 +239,7 @@ Outputs used by Streamlit:
 * Caption tables for baseline vs Qwen2-VL
 
 ---
-<p align="center">
-  <img src="https://github.com/vishalgwu/Image_caption_generator/blob/main/Project_images/Image_caption_generator-1.png" width="600">
-</p>
+
 
 ## 5. Launch Streamlit dashboard (explainability + caption generator)
 
@@ -247,6 +255,9 @@ Streamlit tabs:
 * **Explainability (Baseline + Qwen2-VL)** — compare captions, view token importances and heatmaps.
 
 ---
+<p align="center">
+  <img src="https://github.com/vishalgwu/Image_caption_generator/blob/main/Project_images/Difference_through_heatmap.png" width="650">
+</p>
 
 ## 6. Troubleshooting & common fixes
 
