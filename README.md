@@ -78,124 +78,224 @@ Image_caption_generator/
 └── README.md                         # <-- this file
 
 ```
-# --------------------------------------------------------
-# 0. Clone the repository
-# --------------------------------------------------------
+
+
+---
+
+## Overview
+
+This repository builds an image-captioning / VLM (Vision-Language) pipeline and a Streamlit-based explainability dashboard. The project includes data preprocessing, dataset building, training scripts for several models (baseline CNN+Transformer, metadata-enhanced models, and optional experiments with BLIP2 / Florence2 / vLLM), evaluation, and a Streamlit UI for running the caption generator and explainability visualizations.
+
+---
+
+## Prerequisites
+
+* Python 3.9+ recommended.
+* `git` installed.
+* GPU recommended for training (CUDA + drivers installed) but not required for running preprocessing or the Streamlit demo.
+
+---
+
+## Quick start (complete flow)
+
+### 0. Clone the repository
+
+```bash
 git clone <your-repo-url>.git
 cd Image_caption_generator
+```
 
+### 1. Create and activate a virtual environment
 
-# --------------------------------------------------------
-# 1. Create and activate virtual environment
-# --------------------------------------------------------
+Unix / macOS:
+
+```bash
 python -m venv .venv
-source .venv/bin/activate        # Windows: .venv\Scripts\activate
+source .venv/bin/activate
+```
+
+Windows (PowerShell):
+
+```powershell
+python -m venv .venv
+.\.venv\Scripts\Activate.ps1
+```
+
+Windows (cmd.exe):
+
+```cmd
+python -m venv .venv
+.venv\Scripts\activate.bat
+```
+
+Upgrade pip and install dependencies:
+
+```bash
 pip install --upgrade pip
-pip install -r req.txt
+# The repository may include either `requirements.txt` or `req.txt`.
+# Preferred file name: requirements.txt. If your repo has req.txt, use that instead.
+pip install -r requirements.txt
+# or (if present)
+# pip install -r req.txt
+```
 
+---
 
-# --------------------------------------------------------
-# 2. (One-time) Data Preprocessing Pipeline
-# --------------------------------------------------------
-# Requirements:
-#   - images/ contains all dataset images (Myntra / ABO / custom)
-#   - metadata/styles.csv contains metadata
+## 2. One-time data preprocessing pipeline
 
-# 2.1 Clean metadata → merged.parquet
+**Requirements before running the pipeline**
+
+* `images/` should contain your dataset images (Myntra, ABO, or custom dataset folders).
+* `metadata/styles.csv` (or your metadata CSV) should be present and contain the ground-truth metadata for images.
+
+Run preprocessing steps in order (each step writes outputs into `metadata/`):
+
+```bash
+# 2.1 Clean metadata → metadata/merged.parquet
 python src/vlm/metadata.py
 
-# 2.2 Merge metadata with image paths
+# 2.2 Merge metadata with image paths → updates merged.parquet with absolute/relative image paths
 python src/vlm/merge.py
 
-# 2.3 Optional: verify images folder
+# 2.3 Optional: verify images folder (checks for missing/corrupt images)
 python src/vlm/image_ing.py
 
 # 2.4 Create train/val/test splits
 python src/vlm/make_splits.py
 
-# 2.5 Build vocabulary
+# 2.5 Build vocabulary (vocab.json, vocab.pkl)
 python src/vlm/build_vocab.py
 
-# 2.6 Build final caption dataset parquet
+# 2.6 Build final caption dataset (metadata/metadata_with_captions.parquet plus train/val/test parquet files)
 python src/vlm/build_captions.py
+```
 
-# Output generated:
-#   metadata/merged.parquet
-#   metadata/train.parquet
-#   metadata/val.parquet
-#   metadata/test.parquet
-#   metadata/vocab.json
-#   metadata/vocab.pkl
-#   metadata/metadata_with_captions.parquet
+**Expected outputs (metadata/):**
 
+* `merged.parquet`
+* `train.parquet`, `val.parquet`, `test.parquet`
+* `vocab.json`, `vocab.pkl`
+* `metadata_with_captions.parquet`
 
-# --------------------------------------------------------
-# 3. Model Training (Optional)
-# --------------------------------------------------------
+---
 
+## 3. Model training & evaluation (optional)
+
+> NOTE: Training scripts assume you have an appropriate GPU and model weights/configs set up. Check `src/train/*.py` for hyperparameters and data paths.
+
+```bash
 # 3.1 Train baseline CNN + Transformer
 python src/train/train_baseline.py
 
-# 3.2 Evaluate baseline (BLEU/ROUGE, etc.)
-python src/eval/eval_baseline.py     # outputs metadata/baseline_eval.csv
+# 3.2 Evaluate baseline (BLEU / ROUGE etc.) → outputs metadata/baseline_eval.csv
+python src/eval/eval_baseline.py
 
 # 3.3 Train metadata-enhanced Model1
 python src/train/train_model1.py
 
-# 3.4 Evaluate Model1
-python src/eval/eval_model1.py       # outputs metadata/model1_eval.csv
+# 3.4 Evaluate Model1 → outputs metadata/model1_eval.csv
+python src/eval/eval_model1.py
 
-# 3.5 Optional: BLIP2 / Florence2 / vLLM experiments
+# 3.5 Optional experiments: BLIP2 / Florence2 / vLLM
 python src/train/train_blip2_lora.py
 python src/train/train_florence2.py
 python src/train/train_vllm_blip2.py
 python src/eval/eval_vllm.py
+```
 
+---
 
-# --------------------------------------------------------
-# 4. Qwen2-VL Explainability Pipeline
-# --------------------------------------------------------
+## 4. Qwen2-VL explainability pipeline
 
+> This step runs inference with Qwen2-VL (if available) and computes token importance and similarity metrics used by the Streamlit explainability UI.
+
+```bash
 # 4.1 Generate Qwen2-VL captions + token importance
 python src/vlm/qwen2_inference.py
 
-# 4.2 Compare baseline vs Qwen2-VL captions
+# 4.2 Compare baseline vs Qwen2-VL captions (metrics, heatmaps, tables)
 python src/vlm/eval_qwen2.py
+```
 
-# Produces CSVs for Streamlit explainability:
-#   - Token importance scores
-#   - Caption similarity metrics
-#   - Importance heatmaps
-#   - Baseline vs Qwen2-VL caption tables
+Outputs used by Streamlit:
 
+* Token importance CSVs and heatmap files
+* Caption similarity metrics CSVs
+* Caption tables for baseline vs Qwen2-VL
 
-# --------------------------------------------------------
-# 5. Launch Streamlit Dashboard
-# --------------------------------------------------------
+---
+
+## 5. Launch Streamlit dashboard (explainability + caption generator)
+
+```bash
 streamlit run app.py
-# Opens at: http://localhost:8501
-# Tabs:
-#   • Caption Generator
-#   • Explainability (Baseline + Qwen2-VL)
+```
+
+Open the UI in your browser at `http://localhost:8501`.
+
+Streamlit tabs:
+
+* **Caption Generator** — interactively generate captions for uploaded images.
+* **Explainability (Baseline + Qwen2-VL)** — compare captions, view token importances and heatmaps.
+
+---
+
+## 6. Troubleshooting & common fixes
+
+* **requirements file not found**: some forks use `req.txt`. If you see an error, either rename `req.txt` → `requirements.txt` or install with `pip install -r req.txt`.
+* **Missing images in `images/`**: run `python src/vlm/image_ing.py` to get a report of missing or corrupted files.
+* **Path problems (Windows)**: use forward or double-backslashes for paths in config files. Prefer relative paths (`images/`, `metadata/`) wherever possible.
+* **GPU issues**: ensure CUDA toolkit and drivers are compatible with the installed PyTorch / TensorFlow versions.
+* **Streamlit caching / stale data**: stop Streamlit and restart if you modify underlying CSV / parquet files.
+
+---
 
 
-# --------------------------------------------------------
-# 6. Important: Environment Reminder
-# --------------------------------------------------------
-# Always activate your environment before running scripts:
-#   source .venv/bin/activate
-#   Windows: .venv\Scripts\activate
+---
+
+## 8. Assumptions & notes I applied while updating this README
+
+1. I standardized the dependency filename to `requirements.txt` (but included instructions for `req.txt` in case your repository uses that name).
+2. All `python` commands assume `python` points to a Python 3.9+ interpreter in the activated virtual environment.
+3. Training scripts and advanced experiments (BLIP2 / Florence2 / vLLM / Qwen2-VL) may require private weights, authentication or commercial model access; the README documents the flow but not the provider credentials.
+
+---
+
+## 9. Citations
+
+* Qwen2-VL (paper): Peng Wang et al., *Qwen2-VL*, arXiv:2409.12191 (2024).
+
+---
+
+## 10. Contributing
+
+1) VISHAL FULSUNDAR
+2) Amrutha Jayachandradhara 
 
 
-# --------------------------------------------------------
-# 7. Citations
-# --------------------------------------------------------
-# Dataset: Myntra / Amazon ABO / or equivalent dataset
-#
-# Qwen2-VL:
-# @article{Qwen2-VL,
-#   title={Qwen2-VL: Enhancing Vision-Language Model's Perception of the World at Any Resolution},
-#   author={Peng Wang and Shuai Bai and Sinan Tan and ... Junyang Lin},
-#   journal={arXiv preprint arXiv:2409.12191},
-#   year={2024}
-# }
+Instructor: 
+Prof.Aamir Jafari 
+
+---
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
