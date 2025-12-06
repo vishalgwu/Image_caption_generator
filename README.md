@@ -261,7 +261,7 @@ Streamlit tabs:
 
 ## 6. Troubleshooting & common fixes
 
-* **requirements file not found**: some forks use `req.txt`. If you see an error, either rename `req.txt` → `requirements.txt` or install with `pip install -r req.txt`.
+* **requirements file not found**: some forks use `req.txt`. If you see an error, either rename `requirement.txt` → `req.txt` or install with `pip install -r req.txt`.
 * **Missing images in `images/`**: run `python src/vlm/image_ing.py` to get a report of missing or corrupted files.
 * **Path problems (Windows)**: use forward or double-backslashes for paths in config files. Prefer relative paths (`images/`, `metadata/`) wherever possible.
 * **GPU issues**: ensure CUDA toolkit and drivers are compatible with the installed PyTorch / TensorFlow versions.
@@ -271,12 +271,6 @@ Streamlit tabs:
 
 
 ---
-
-## 8. Assumptions & notes I applied while updating this README
-
-1. I standardized the dependency filename to `requirements.txt` (but included instructions for `req.txt` in case your repository uses that name).
-2. All `python` commands assume `python` points to a Python 3.9+ interpreter in the activated virtual environment.
-3. Training scripts and advanced experiments (BLIP2 / Florence2 / vLLM / Qwen2-VL) may require private weights, authentication or commercial model access; the README documents the flow but not the provider credentials.
 
 ---
 
