@@ -14,6 +14,18 @@ Fashion image captioning system with:
 
 This repository builds an image-captioning / VLM (Vision-Language) pipeline and a Streamlit-based explainability dashboard. The project includes data preprocessing, dataset building, training scripts for several models (baseline CNN+Transformer, metadata-enhanced models, and optional experiments with BLIP2 / Florence2 / vLLM), evaluation, and a Streamlit UI for running the caption generator and explainability visualizations.
 
+## Results:
+
+ine-tuned a 48M-parameter CNN-Transformer encoder-decoder captioner on 45K images from Myntra Fashion dataset, reaching 0.82
+CIDEr and 71% attribute-level F1—outperforming zero-shot Qwen2-VL-2B (0.44 CIDEr) and BLIP-2 (0.31) on catalog-style garment
+attributes at 18x fewer parameters.
+• Cut p95 batch captioning latency 41% (1,240ms to 730ms) and raised throughput to 11 images/sec on a single A100, by migrating
+inference from a per-image HuggingFace generate loop to vLLM with continuous batching and tuned maxnumseqsand pre f ixcaching.
+• Validated attribute grounding at 63% region-agreement against 80 hand-annotated garment images (4 attribute classes) using decoder
+cross-attention rollout, surfacing that the model inferred fabric type from silhouette rather than texture and informing a targeted retraining
+pass.
+• Collected 120 human preference judgments across 3 reviewers via a Streamlit A/B interface, producing the error taxonomy used to
+prioritize captioning failure modes.
 
 
 ## Prerequisites
